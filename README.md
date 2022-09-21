@@ -48,16 +48,16 @@ Commands:
 Usage: keras2trt keras2onnx [OPTIONS]
 
 Options:
-  --opset INTEGER    [default: 15]
-  --model-path PATH  [required]
-  --save-path PATH   [required]
-  --help             Show this message and exit.
+  --opset INTEGER     [default: 15]
+  --keras-model PATH  [required]
+  --save-path PATH    [required]
+  --help              Show this message and exit.
 ```
 
 #### Example
 
 ```
-keras2trt keras2onnx --model-path models/inceptionv3 --opset 13 --save-path models/tf2onnx
+keras2trt keras2onnx --keras-model models/inceptionv3 --opset 13 --save-path models/tf2onnx
 ```
 
 - if --save-path does not have a suffix, ".onnx" suffix will be added to the saved ONNX model.
@@ -82,7 +82,7 @@ Options:
   --objective [classification|detection|segmentation]
                                   [required]
   --in-shape TEXT                 [required]
-  --model-path PATH               [required]
+  --keras-model PATH              [required]
   --save-path PATH                [required]
   --help                          Show this message and exit.
 ```
@@ -90,7 +90,7 @@ Options:
 #### Example
 
 ```
-keras2trt keras2trt --objective classification --in-shape "(1,256,256,3)" --save-path models/keras2trt.trt --model-path models/inceptionv3
+keras2trt keras2trt --objective classification --in-shape "(1,256,256,3)" --keras-model models/inceptionv3 --save-path models/keras2trt.trt
 ```
 
 - if --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
@@ -115,7 +115,7 @@ Options:
   --objective [classification|detection|segmentation]
                                   [required]
   --in-shape TEXT                 [required]
-  --model-path PATH               [required]
+  --onnx-model PATH               [required]
   --save-path PATH                [required]
   --help                          Show this message and exit.
 ```
@@ -123,7 +123,7 @@ Options:
 #### Example
 
 ```
-keras2trt onnx2trt --objective classification --in-shape "(1,256,256,3)" --save-path models/onnx2trt --model-path models/tf2onnx.onnx
+keras2trt onnx2trt --objective classification --in-shape "(1,256,256,3)" --onnx-model models/tf2onnx.onnx --save-path models/onnx2trt
 ```
 
 - if --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.

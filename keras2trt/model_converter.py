@@ -3,7 +3,7 @@ import os
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 from ast import literal_eval
 from pathlib import Path
-from typing import List, Union
+from typing import Any, List, Union
 
 import onnx
 import tensorflow as tf
@@ -19,12 +19,12 @@ EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
 
 class ModelConverter(object):
     def __init__(self) -> None:
-        self.logger = logger
+        self.__logger = logger
 
     def __convert_keras_to_onnx(
         self, keras_model, opset: int
     ) -> onnx.onnx_ml_pb2.ModelProto:
-        self.logger.info(f"Converting Keras model to ONNX.")
+        self.__logger.info(f"Converting Keras model to ONNX.")
         spec = (tf.TensorSpec(keras_model.input.shape, tf.float32, name="input"),)
         model_proto, _ = tf2onnx.convert.from_keras(
             keras_model, input_signature=spec, opset=opset
@@ -35,20 +35,20 @@ class ModelConverter(object):
     def __load_keras_model(self, model_path: Path):
         if not model_path.exists():
             raise FileNotFoundError(f"Keras model not found: {model_path}")
-        self.logger.info(f"Loading Keras model: {model_path.name}.")
+        self.__logger.info(f"Loading Keras model: {model_path.name}.")
         keras_model = tf.keras.models.load_model(model_path, compile=False)
         return keras_model
 
     def convert_keras2onnx(
         self,
-        model_path: Path,
+        keras_model: Union[Path, Any],
         opset: int,
         save_path: Path,
     ) -> onnx.onnx_ml_pb2.ModelProto:
         """This function converts Keras model to ONNX model.
 
         Args:
-            model_path (Path): Path to keras model.
+            keras_model (Union[Path, Any]): Path to keras model.
             opset (int): ONNX model opset.
             save_path (Path): Path to save the ONNX model.
 
@@ -56,11 +56,12 @@ class ModelConverter(object):
             onnx.onnx_ml_pb2.ModelProto: ONNX model.
         """
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        keras_model = self.__load_keras_model(model_path)
+        if isinstance(keras_model, Path):
+            keras_model = self.__load_keras_model(keras_model)
         onnx_model = self.__convert_keras_to_onnx(keras_model=keras_model, opset=opset)
         if not save_path.suffix:
             save_path = save_path.parent / (save_path.name + ".onnx")
-        self.logger.info(f"Saving onnx model: {save_path}")
+        self.__logger.info(f"Saving onnx model: {save_path}")
         onnx.save(onnx_model, save_path)
 
         return onnx_model
@@ -102,18 +103,20 @@ class ModelConverter(object):
 
     def __save_trt_engine(
         self,
-        onnx_model: Union[onnx.onnx_ml_pb2.ModelProto, Path],
         objective: ModelObjective,
         in_shape: List[int],
+        onnx_model: Union[onnx.onnx_ml_pb2.ModelProto, Path],
         save_path: Path,
     ) -> trt.tensorrt.ICudaEngine:
         if isinstance(onnx_model, onnx.onnx_ml_pb2.ModelProto):
             onnx_model_path = Path(save_path).parent / f"{Path(save_path).stem}.onnx"
             onnx.save(onnx_model, onnx_model_path)
         elif isinstance(onnx_model, Path):
+            if not onnx_model.exists():
+                raise FileNotFoundError(f"ONNX model not found: {onnx_model}")
             onnx_model_path = onnx_model
 
-        self.logger.info(
+        self.__logger.info(
             f"Converting ONNX model '{onnx_model_path.name}' to TensorRT engine."
         )
         trt_engine = self.__onnx_to_trt(
@@ -123,7 +126,7 @@ class ModelConverter(object):
         )
         if not save_path.suffix:
             save_path = save_path.parent / (save_path.name + ".engine")
-        self.logger.info(f"Saving serialized TRT engine: {save_path}")
+        self.__logger.info(f"Saving serialized TRT engine: {save_path}")
         with open(save_path, "wb") as f:
             f.write(trt_engine.serialize())
 
@@ -133,7 +136,7 @@ class ModelConverter(object):
         self,
         objective: ModelObjective,
         in_shape: str,
-        model_path: Path,
+        keras_model: Union[Path, Any],
         save_path: Path,
     ) -> trt.tensorrt.ICudaEngine:
         """This function converts Tensorflow model to TensorRT engine.
@@ -141,7 +144,7 @@ class ModelConverter(object):
         Args:
             objective (ModelObjective): Objective of the model (classification, segmentation, detection).
             in_shape (str): Model input shape (batch_size, width, height, channel).
-            model_path (Path): Tensorflow saved_model path.
+            keras_model (Union[Path, Any]): Tensorflow saved_model path.
             save_path (Path): Path to save the TensorRT engine.
 
         Returns:
@@ -149,7 +152,8 @@ class ModelConverter(object):
         """
 
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        keras_model = self.__load_keras_model(model_path)
+        if isinstance(keras_model, Path):
+            keras_model = self.__load_keras_model(keras_model)
         onnx_model = self.__convert_keras_to_onnx(
             keras_model=keras_model, opset=OnnxOpset[objective.value.upper()].value
         )
@@ -165,7 +169,7 @@ class ModelConverter(object):
         self,
         objective: ModelObjective,
         in_shape: str,
-        model_path: Path,
+        onnx_model: Union[onnx.onnx_ml_pb2.ModelProto, Path],
         save_path: Path,
     ) -> trt.tensorrt.ICudaEngine:
         """This function converts ONNX model to TensorRT engine.
@@ -173,18 +177,16 @@ class ModelConverter(object):
         Args:
             objective (ModelObjective): Objective of the model (classification, segmentation, detection).
             in_shape (str): Model input shape (batch_size, width, height, channel).
-            model_path (Path): Onnx model path.
+            onnx_model (Union[onnx.onnx_ml_pb2.ModelProto, Path]): Onnx model path.
             save_path (Path): Path to save the TensorRT engine.
 
         Returns:
             trt.tensorrt.ICudaEngine: TensorRT engine.
         """
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
-        if not model_path.exists():
-            raise FileNotFoundError(f"ONNX model not found: {model_path}")
 
         return self.__save_trt_engine(
-            onnx_model=model_path,
+            onnx_model=onnx_model,
             objective=objective,
             in_shape=in_shape,
             save_path=save_path,
