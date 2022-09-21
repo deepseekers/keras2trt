@@ -33,6 +33,8 @@ class ModelConverter(object):
         return model_proto
 
     def __load_keras_model(self, model_path: Path):
+        if not model_path.exists():
+            raise FileNotFoundError(f"Keras model not found: {model_path}")
         self.logger.info(f"Loading Keras model: {model_path.name}.")
         keras_model = tf.keras.models.load_model(model_path, compile=False)
         return keras_model
@@ -178,6 +180,8 @@ class ModelConverter(object):
             trt.tensorrt.ICudaEngine: TensorRT engine.
         """
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+        if not model_path.exists():
+            raise FileNotFoundError(f"ONNX model not found: {model_path}")
 
         return self.__save_trt_engine(
             onnx_model=model_path,
