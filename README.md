@@ -14,7 +14,7 @@ The following packages need to be installed to use the cli.
 
 ```bash
 pip install nvidia-pyindex==1.0.9 \
-&& pip install nvidia-tensorrt==8.2.2.1
+&& pip install nvidia-tensorrt==8.4.1.5
 ```
 
 ## Installation
