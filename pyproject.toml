@@ -1,10 +1,12 @@
 [tool.poetry]
 name = "keras2trt"
-version = "0.1.0"
+version = "0.1.1"
 description = "CLI to convert TensorFlow models to TensorRT engines"
 authors = ["Emrecan Altinsoy <emrecanaltinsoy@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+homepage = "https://pypi.org/project/keras2trt/"
+repository = "https://github.com/emrecanaltinsoy/keras2trt"
 
 [tool.poetry.dependencies]
 python = ">=3.8,<3.11"
