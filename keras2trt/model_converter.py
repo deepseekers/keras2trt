@@ -1,19 +1,17 @@
 import os
 
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
-import tempfile
 from ast import literal_eval
 from pathlib import Path
 from typing import List, Union
 
 import onnx
 import tensorflow as tf
+import tensorrt as trt
 import tf2onnx
 
-import tensorrt as trt
-
-from .logging import logger
 from .enums import ModelObjective, OnnxOpset
+from .logging import logger
 
 TRT_LOGGER = trt.Logger(min_severity=trt.ILogger.ERROR)
 EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
@@ -23,7 +21,10 @@ class ModelConverter(object):
     def __init__(self) -> None:
         self.logger = logger
 
-    def __convert_keras_to_onnx(self, keras_model, opset: int):
+    def __convert_keras_to_onnx(
+        self, keras_model, opset: int
+    ) -> onnx.onnx_ml_pb2.ModelProto:
+        self.logger.info(f"Converting Keras model to ONNX.")
         spec = (tf.TensorSpec(keras_model.input.shape, tf.float32, name="input"),)
         model_proto, _ = tf2onnx.convert.from_keras(
             keras_model, input_signature=spec, opset=opset
@@ -32,6 +33,7 @@ class ModelConverter(object):
         return model_proto
 
     def __load_keras_model(self, model_path: Path):
+        self.logger.info(f"Loading Keras model: {model_path.name}.")
         keras_model = tf.keras.models.load_model(model_path, compile=False)
         return keras_model
 
@@ -40,7 +42,17 @@ class ModelConverter(object):
         model_path: Path,
         opset: int,
         save_path: Path,
-    ):
+    ) -> onnx.onnx_ml_pb2.ModelProto:
+        """This function converts Keras model to ONNX model.
+
+        Args:
+            model_path (Path): Path to keras model.
+            opset (int): ONNX model opset.
+            save_path (Path): Path to save the ONNX model.
+
+        Returns:
+            onnx.onnx_ml_pb2.ModelProto: ONNX model.
+        """
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         keras_model = self.__load_keras_model(model_path)
         onnx_model = self.__convert_keras_to_onnx(keras_model=keras_model, opset=opset)
@@ -49,16 +61,20 @@ class ModelConverter(object):
         self.logger.info(f"Saving onnx model: {save_path}")
         onnx.save(onnx_model, save_path)
 
+        return onnx_model
+
     def __onnx_to_trt(
         self,
         onnx_path: str,
         objective: ModelObjective,
         in_shape: List[int],
     ) -> trt.tensorrt.ICudaEngine:
-        """This is the function to create the TensorRT engine
+        """This is the function to convert ONNX model to TensorRT Engine
 
         Args:
             onnx_path (str): Path to onnx_file.
+            objective (ModelObjective): Objective of the model (classification, segmentation, detection).
+            in_shape (List[int]): Model input shape (batch_size, width, height, channel).
 
         Returns:
             trt.tensorrt.ICudaEngine: TensorRT engine
@@ -88,13 +104,16 @@ class ModelConverter(object):
         objective: ModelObjective,
         in_shape: List[int],
         save_path: Path,
-    ):
+    ) -> trt.tensorrt.ICudaEngine:
         if isinstance(onnx_model, onnx.onnx_ml_pb2.ModelProto):
             onnx_model_path = Path(save_path).parent / f"{Path(save_path).stem}.onnx"
             onnx.save(onnx_model, onnx_model_path)
         elif isinstance(onnx_model, Path):
             onnx_model_path = onnx_model
 
+        self.logger.info(
+            f"Converting ONNX model '{onnx_model_path.name}' to TensorRT engine."
+        )
         trt_engine = self.__onnx_to_trt(
             onnx_path=str(onnx_model_path),
             objective=objective,

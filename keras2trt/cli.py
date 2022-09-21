@@ -1,8 +1,9 @@
 from pathlib import Path
+
 from typer import Option, Typer
 
-from .model_converter import ModelConverter
 from .enums import ModelObjective
+from .model_converter import ModelConverter
 
 app = Typer()
 

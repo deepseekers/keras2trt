@@ -90,7 +90,7 @@ Options:
 #### Example
 
 ```
-keras2trt keras2trt --objective classification --in-shape "(1,256,256,3)" --save-path models/tf2trt.trt --model-path models/inceptionv3
+keras2trt keras2trt --objective classification --in-shape "(1,256,256,3)" --save-path models/keras2trt.trt --model-path models/inceptionv3
 ```
 
 - if --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
