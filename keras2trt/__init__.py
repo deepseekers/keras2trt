@@ -1,2 +1,2 @@
 from .model_converter import ModelConverter
-from .config import __version__
+from .version import __version__

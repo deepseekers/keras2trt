@@ -4,7 +4,7 @@ from typer import Option, Typer
 
 from .enums import ModelObjective
 from .model_converter import ModelConverter
-from .config import __version__
+from .version import __version__
 
 app = Typer()
 
