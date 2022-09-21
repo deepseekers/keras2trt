@@ -2,7 +2,7 @@ from pathlib import Path
 from typer import Option, Typer
 
 from .model_converter import ModelConverter
-from .models import ModelObjective
+from .enums import ModelObjective
 
 app = Typer()
 

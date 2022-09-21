@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "keras2trt"
-version = "0.1.1"
+version = "0.2.0"
 description = "CLI to convert TensorFlow models to TensorRT engines"
 authors = ["Emrecan Altinsoy <emrecanaltinsoy@gmail.com>"]
 license = "MIT"

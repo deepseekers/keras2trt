@@ -12,8 +12,8 @@ import tf2onnx
 
 import tensorrt as trt
 
-from .config import logger
-from .models import ModelObjective, OnnxOpset
+from .logging import logger
+from .enums import ModelObjective, OnnxOpset
 
 TRT_LOGGER = trt.Logger(min_severity=trt.ILogger.ERROR)
 EXPLICIT_BATCH = 1 << (int)(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH)
