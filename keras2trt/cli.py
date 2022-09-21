@@ -4,6 +4,7 @@ from typer import Option, Typer
 
 from .enums import ModelObjective
 from .model_converter import ModelConverter
+from .config import __version__
 
 app = Typer()
 
@@ -52,6 +53,11 @@ def onnx2trt(
         onnx_model=onnx_model,
         save_path=save_path,
     )
+
+
+@app.command()
+def version():
+    print(__version__)
 
 
 if __name__ == "__main__":
