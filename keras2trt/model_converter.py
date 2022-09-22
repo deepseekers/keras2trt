@@ -21,6 +21,24 @@ class ModelConverter(object):
     def __init__(self) -> None:
         self.__logger = logger
 
+    def __parse_shapes(self, *args):
+        shapes = [literal_eval(a) if isinstance(a, str) else None for a in args]
+        if len({len(s) for s in shapes if s is not None}) > 1:
+            raise ValueError(f"Shape lengths need to be the same.\n{shapes}")
+        if all(shapes[1:]):
+            for min_s, opt_s, max_s in zip(*shapes[1:]):
+                if min_s <= opt_s and opt_s <= max_s:
+                    continue
+                raise ValueError(
+                    f"Dynamic shape dimensions need to be set correctly. \n0 <= min[i] <= opt[i] <= max[i] for all i"
+                )
+        else:
+            self.__logger.warn(
+                f"For dynamic batch size all min_shape, opt_shape and max_shape need to be set."
+            )
+
+        return shapes
+
     def __convert_keras_to_onnx(
         self, keras_model, opset: int
     ) -> onnx.onnx_ml_pb2.ModelProto:
@@ -69,8 +87,10 @@ class ModelConverter(object):
     def __onnx_to_trt(
         self,
         onnx_path: str,
-        objective: ModelObjective,
         in_shape: List[int],
+        min_shape: List[int],
+        opt_shape: List[int],
+        max_shape: List[int],
     ) -> trt.tensorrt.ICudaEngine:
         """This is the function to convert ONNX model to TensorRT Engine
 
@@ -89,22 +109,34 @@ class ModelConverter(object):
         ) as parser:
             builder_config.max_workspace_size = 256 << 20
             builder_config.flags = 1 << int(trt.BuilderFlag.FP16)
-            if objective == ModelObjective.DETECTION:
-                profile = builder.create_optimization_profile()
-                profile.set_shape("input", min=in_shape, opt=in_shape, max=in_shape)
-                builder_config.add_optimization_profile(profile)
+
             parser.parse_from_file(onnx_path)
             input_shape = list(network.get_input(0).shape)
-            input_shape[0] = in_shape[0]
-            network.get_input(0).shape = input_shape
+
+            if input_shape[0] != -1:
+                assert min_shape == opt_shape == max_shape
+
+            if all([min_shape, opt_shape, max_shape]) and input_shape[0] == -1:
+                profile = builder.create_optimization_profile()
+                profile.set_shape("input", min=min_shape, opt=opt_shape, max=max_shape)
+                builder_config.add_optimization_profile(profile)
+            elif in_shape is not None:
+                input_shape[0] = in_shape[0]
+                network.get_input(0).shape = input_shape
+            else:
+                input_shape[0] = 1
+                network.get_input(0).shape = input_shape
+
             engine = builder.build_engine(network, builder_config)
 
             return engine
 
     def __save_trt_engine(
         self,
-        objective: ModelObjective,
         in_shape: List[int],
+        min_shape: List[int],
+        opt_shape: List[int],
+        max_shape: List[int],
         onnx_model: Union[onnx.onnx_ml_pb2.ModelProto, Path],
         save_path: Path,
     ) -> trt.tensorrt.ICudaEngine:
@@ -121,8 +153,10 @@ class ModelConverter(object):
         )
         trt_engine = self.__onnx_to_trt(
             onnx_path=str(onnx_model_path),
-            objective=objective,
-            in_shape=literal_eval(in_shape),
+            in_shape=in_shape,
+            min_shape=min_shape,
+            opt_shape=opt_shape,
+            max_shape=max_shape,
         )
         if not save_path.suffix:
             save_path = save_path.parent / (save_path.name + ".engine")
@@ -134,15 +168,18 @@ class ModelConverter(object):
 
     def convert_keras2trt(
         self,
-        objective: ModelObjective,
+        opset: int,
         in_shape: str,
+        min_shape: str,
+        opt_shape: str,
+        max_shape: str,
         keras_model: Union[Path, Any],
         save_path: Path,
     ) -> trt.tensorrt.ICudaEngine:
         """This function converts Tensorflow model to TensorRT engine.
 
         Args:
-            objective (ModelObjective): Objective of the model (classification, segmentation, detection).
+            opset (int): Opset value for ONNX conversion.
             in_shape (str): Model input shape (batch_size, width, height, channel).
             keras_model (Union[Path, Any]): Tensorflow saved_model path.
             save_path (Path): Path to save the TensorRT engine.
@@ -151,24 +188,30 @@ class ModelConverter(object):
             trt.tensorrt.ICudaEngine: TensorRT engine.
         """
 
+        in_shape, min_shape, opt_shape, max_shape = self.__parse_shapes(
+            in_shape, min_shape, opt_shape, max_shape
+        )
+
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         if isinstance(keras_model, Path):
             keras_model = self.__load_keras_model(keras_model)
-        onnx_model = self.__convert_keras_to_onnx(
-            keras_model=keras_model, opset=OnnxOpset[objective.value.upper()].value
-        )
+        onnx_model = self.__convert_keras_to_onnx(keras_model=keras_model, opset=opset)
 
         return self.__save_trt_engine(
             onnx_model=onnx_model,
-            objective=objective,
             in_shape=in_shape,
+            min_shape=min_shape,
+            opt_shape=opt_shape,
+            max_shape=max_shape,
             save_path=save_path,
         )
 
     def convert_onnx2trt(
         self,
-        objective: ModelObjective,
         in_shape: str,
+        min_shape: str,
+        opt_shape: str,
+        max_shape: str,
         onnx_model: Union[onnx.onnx_ml_pb2.ModelProto, Path],
         save_path: Path,
     ) -> trt.tensorrt.ICudaEngine:
@@ -185,9 +228,16 @@ class ModelConverter(object):
         """
         Path(save_path).parent.mkdir(parents=True, exist_ok=True)
 
+        in_shape, min_shape, opt_shape, max_shape = self.__parse_shapes(
+            in_shape, min_shape, opt_shape, max_shape
+        )
+        # self.__logger.info(in_shape, min_shape, opt_shape, max_shape)
+
         return self.__save_trt_engine(
             onnx_model=onnx_model,
-            objective=objective,
             in_shape=in_shape,
+            min_shape=min_shape,
+            opt_shape=opt_shape,
+            max_shape=max_shape,
             save_path=save_path,
         )

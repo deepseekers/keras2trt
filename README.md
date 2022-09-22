@@ -40,6 +40,7 @@ Commands:
   keras2onnx
   keras2trt
   onnx2trt
+  version
 ```
 
 ### keras2onnx
@@ -79,21 +80,27 @@ models/inceptionv3
 Usage: keras2trt keras2trt [OPTIONS]
 
 Options:
-  --objective [classification|detection|segmentation]
-                                  [required]
-  --in-shape TEXT                 [required]
-  --keras-model PATH              [required]
-  --save-path PATH                [required]
-  --help                          Show this message and exit.
+  --opset INTEGER     [default: 15]
+  --in-shape TEXT
+  --min-shape TEXT
+  --opt-shape TEXT
+  --max-shape TEXT
+  --keras-model PATH  [required]
+  --save-path PATH    [required]
+  --help              Show this message and exit.
 ```
 
 #### Example
 
 ```
-keras2trt keras2trt --objective classification --in-shape "(1,256,256,3)" --keras-model models/inceptionv3 --save-path models/keras2trt.trt
+keras2trt keras2trt --opset 17 --in-shape "(1,256,256,3)" --keras-model models/inceptionv3 --save-path models/keras2trt.trt
+
+keras2trt keras2trt --opset 15 --min-shape "(5,256,256,3)" --opt-shape "(15,256,256,3)" --max-shape "(30,256,256,3)" --keras-model models/inceptionv3 --save-path models/keras2trt
 ```
 
 - if --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
+- All min_shape, opt_shape, and max_shape need to be set for dynamic batch size.
+- If none of the shape arguments is set, the batch size will be set as 1.
 - Model path is a keras saved_model directory.
 
 ```
@@ -112,18 +119,23 @@ models/inceptionv3
 Usage: keras2trt onnx2trt [OPTIONS]
 
 Options:
-  --objective [classification|detection|segmentation]
-                                  [required]
-  --in-shape TEXT                 [required]
-  --onnx-model PATH               [required]
-  --save-path PATH                [required]
-  --help                          Show this message and exit.
+  --in-shape TEXT
+  --min-shape TEXT
+  --opt-shape TEXT
+  --max-shape TEXT
+  --onnx-model PATH  [required]
+  --save-path PATH   [required]
+  --help             Show this message and exit.
 ```
 
 #### Example
 
 ```
-keras2trt onnx2trt --objective classification --in-shape "(1,256,256,3)" --onnx-model models/tf2onnx.onnx --save-path models/onnx2trt
+keras2trt onnx2trt --in-shape "(1,256,256,3)" --onnx-model models/tf2onnx.onnx --save-path models/onnx2trt
+
+keras2trt onnx2trt --min-shape "(5,256,256,3)" --opt-shape "(15,256,256,3)" --max-shape "(30,256,256,3)" --onnx-model models/tf2onnx.onnx --save-path models/onnx2trt
 ```
 
 - if --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
+- All min_shape, opt_shape, and max_shape need to be set for dynamic batch size.
+- If none of the shape arguments is set, the batch size will be set as 1.

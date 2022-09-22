@@ -25,15 +25,21 @@ def keras2onnx(
 
 @app.command()
 def keras2trt(
-    objective: ModelObjective = Option(...),
-    in_shape: str = Option(...),
+    opset: int = Option(15),
+    in_shape: str = Option(None),
+    min_shape: str = Option(None),
+    opt_shape: str = Option(None),
+    max_shape: str = Option(None),
     keras_model: Path = Option(...),
     save_path: Path = Option(...),
 ):
     conv = ModelConverter()
     conv.convert_keras2trt(
-        objective=objective,
+        opset=opset,
         in_shape=in_shape,
+        min_shape=min_shape,
+        opt_shape=opt_shape,
+        max_shape=max_shape,
         keras_model=keras_model,
         save_path=save_path,
     )
@@ -41,15 +47,19 @@ def keras2trt(
 
 @app.command()
 def onnx2trt(
-    objective: ModelObjective = Option(...),
-    in_shape: str = Option(...),
+    in_shape: str = Option(None),
+    min_shape: str = Option(None),
+    opt_shape: str = Option(None),
+    max_shape: str = Option(None),
     onnx_model: Path = Option(...),
     save_path: Path = Option(...),
 ):
     conv = ModelConverter()
     conv.convert_onnx2trt(
-        objective=objective,
         in_shape=in_shape,
+        min_shape=min_shape,
+        opt_shape=opt_shape,
+        max_shape=max_shape,
         onnx_model=onnx_model,
         save_path=save_path,
     )
