@@ -11,10 +11,14 @@ app = Typer()
 
 @app.command()
 def keras2onnx(
-    opset: int = Option(15),
-    keras_model: Path = Option(...),
-    save_path: Path = Option(...),
+    opset: int = Option(15, help="ONNX model opset."),
+    keras_model: Path = Option(..., help="Path to the Keras model."),
+    save_path: Path = Option(..., help="Path to save the TensorRT engine."),
 ):
+    """Convert Keras model to ONNX model.
+
+    - if --save-path does not have a suffix, ".onnx" suffix will be added to the saved ONNX model.
+    """
     conv = ModelConverter()
     conv.convert_keras2onnx(
         opset=opset,
@@ -25,14 +29,23 @@ def keras2onnx(
 
 @app.command()
 def keras2trt(
-    opset: int = Option(15),
-    in_shape: str = Option(None),
-    min_shape: str = Option(None),
-    opt_shape: str = Option(None),
-    max_shape: str = Option(None),
-    keras_model: Path = Option(...),
-    save_path: Path = Option(...),
+    opset: int = Option(15, help="ONNX model opset."),
+    in_shape: str = Option(None, help="Model input shape."),
+    min_shape: str = Option(None, help="Minimum input shape for dynamic batch."),
+    opt_shape: str = Option(None, help="Optimal input shape for dynamic batch."),
+    max_shape: str = Option(None, help="Maximum input shape for dynamic batch."),
+    keras_model: Path = Option(..., help="Path to the Keras model."),
+    save_path: Path = Option(..., help="Path to save the TensorRT engine."),
 ):
+    """
+    Convert Keras model to TensorRT engine.
+
+    - If --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
+
+    - All min_shape, opt_shape, and max_shape need to be set for dynamic batch size.
+
+    - If none of the shape arguments is set, the batch size will be set as 1.
+    """
     conv = ModelConverter()
     conv.convert_keras2trt(
         opset=opset,
@@ -47,13 +60,21 @@ def keras2trt(
 
 @app.command()
 def onnx2trt(
-    in_shape: str = Option(None),
-    min_shape: str = Option(None),
-    opt_shape: str = Option(None),
-    max_shape: str = Option(None),
-    onnx_model: Path = Option(...),
-    save_path: Path = Option(...),
+    in_shape: str = Option(None, help="Model input shape."),
+    min_shape: str = Option(None, help="Minimum input shape for dynamic batch."),
+    opt_shape: str = Option(None, help="Optimal input shape for dynamic batch."),
+    max_shape: str = Option(None, help="Maximum input shape for dynamic batch."),
+    onnx_model: Path = Option(..., help="Path to the ONNX model."),
+    save_path: Path = Option(..., help="Path to save the TensorRT engine."),
 ):
+    """Convert ONNX model to TensorRT engine.
+
+    - If --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
+
+    - All min_shape, opt_shape, and max_shape need to be set for dynamic batch size.
+
+    - If none of the shape arguments is set, the batch size will be set as 1.
+    """
     conv = ModelConverter()
     conv.convert_onnx2trt(
         in_shape=in_shape,

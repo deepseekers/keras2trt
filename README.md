@@ -14,8 +14,10 @@ The following packages need to be installed to use the cli.
 
 ```bash
 pip install nvidia-pyindex==1.0.9 \
-&& pip install nvidia-tensorrt==8.4.1.5
+&& pip install nvidia-tensorrt==8.4.2.4
 ```
+
+**_NOTE:_** nvidia-tensorrt==8.4.2.4 is compatible with nvcr.io/nvidia/tritonserver:22.08-py3 docker image.
 
 ## Installation
 
@@ -48,10 +50,15 @@ Commands:
 ```
 Usage: keras2trt keras2onnx [OPTIONS]
 
+  Convert Keras model to ONNX model.
+
+  - if --save-path does not have a suffix, ".onnx" suffix will be added to the
+  saved ONNX model.
+
 Options:
-  --opset INTEGER     [default: 15]
-  --keras-model PATH  [required]
-  --save-path PATH    [required]
+  --opset INTEGER     ONNX model opset.  [default: 15]
+  --keras-model PATH  Path to the Keras model.  [required]
+  --save-path PATH    Path to save the TensorRT engine.  [required]
   --help              Show this message and exit.
 ```
 
@@ -61,8 +68,7 @@ Options:
 keras2trt keras2onnx --keras-model models/inceptionv3 --opset 13 --save-path models/tf2onnx
 ```
 
-- if --save-path does not have a suffix, ".onnx" suffix will be added to the saved ONNX model.
-- Model path is a keras saved_model directory.
+Model path is a keras saved_model directory.
 
 ```
 models/inceptionv3
@@ -79,14 +85,24 @@ models/inceptionv3
 ```
 Usage: keras2trt keras2trt [OPTIONS]
 
+  Convert Keras model to tensorrt engine.
+
+  - If --save-path does not have a suffix, ".engine" suffix will be added to
+  the saved TensorRT engine.
+
+  - All min_shape, opt_shape, and max_shape need to be set for dynamic batch
+  size.
+
+  - If none of the shape arguments is set, the batch size will be set as 1.
+
 Options:
-  --opset INTEGER     [default: 15]
-  --in-shape TEXT
-  --min-shape TEXT
-  --opt-shape TEXT
-  --max-shape TEXT
-  --keras-model PATH  [required]
-  --save-path PATH    [required]
+  --opset INTEGER     ONNX model opset.  [default: 15]
+  --in-shape TEXT     Model input shape.
+  --min-shape TEXT    Minimum input shape for dynamic batch.
+  --opt-shape TEXT    Optimal input shape for dynamic batch.
+  --max-shape TEXT    Maximum input shape for dynamic batch.
+  --keras-model PATH  Path to the Keras model.  [required]
+  --save-path PATH    Path to save the TensorRT engine.  [required]
   --help              Show this message and exit.
 ```
 
@@ -98,10 +114,7 @@ keras2trt keras2trt --opset 17 --in-shape "(1,256,256,3)" --keras-model models/i
 keras2trt keras2trt --opset 15 --min-shape "(5,256,256,3)" --opt-shape "(15,256,256,3)" --max-shape "(30,256,256,3)" --keras-model models/inceptionv3 --save-path models/keras2trt
 ```
 
-- if --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
-- All min_shape, opt_shape, and max_shape need to be set for dynamic batch size.
-- If none of the shape arguments is set, the batch size will be set as 1.
-- Model path is a keras saved_model directory.
+Model path is a keras saved_model directory.
 
 ```
 models/inceptionv3
@@ -118,13 +131,23 @@ models/inceptionv3
 ```
 Usage: keras2trt onnx2trt [OPTIONS]
 
+  Convert ONNX model to tensorrt engine.
+
+  - If --save-path does not have a suffix, ".engine" suffix will be added to
+  the saved TensorRT engine.
+
+  - All min_shape, opt_shape, and max_shape need to be set for dynamic batch
+  size.
+
+  - If none of the shape arguments is set, the batch size will be set as 1.
+
 Options:
-  --in-shape TEXT
-  --min-shape TEXT
-  --opt-shape TEXT
-  --max-shape TEXT
-  --onnx-model PATH  [required]
-  --save-path PATH   [required]
+  --in-shape TEXT    Model input shape.
+  --min-shape TEXT   Minimum input shape for dynamic batch.
+  --opt-shape TEXT   Optimal input shape for dynamic batch.
+  --max-shape TEXT   Maximum input shape for dynamic batch.
+  --onnx-model PATH  Path to the ONNX model.  [required]
+  --save-path PATH   Path to save the TensorRT engine.  [required]
   --help             Show this message and exit.
 ```
 
@@ -135,7 +158,3 @@ keras2trt onnx2trt --in-shape "(1,256,256,3)" --onnx-model models/tf2onnx.onnx -
 
 keras2trt onnx2trt --min-shape "(5,256,256,3)" --opt-shape "(15,256,256,3)" --max-shape "(30,256,256,3)" --onnx-model models/tf2onnx.onnx --save-path models/onnx2trt
 ```
-
-- if --save-path does not have a suffix, ".engine" suffix will be added to the saved TensorRT engine.
-- All min_shape, opt_shape, and max_shape need to be set for dynamic batch size.
-- If none of the shape arguments is set, the batch size will be set as 1.
